@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { PageTransition } from "@/components/transitions/page-transition"
 
 export const metadata: Metadata = {
   title: "Portal del Paciente | Clínica IA",
@@ -30,7 +31,7 @@ export default function PacienteLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 md:px-6">
         <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
           <Link href="/" className="flex items-center gap-2 font-semibold">
             <Building className="h-6 w-6" />
@@ -117,7 +118,9 @@ export default function PacienteLayout({
           </DropdownMenu>
         </div>
       </header>
-      <main className="flex-1 p-4 md:p-6">{children}</main>
+      <main className="flex-1 p-4 md:p-6">
+        <PageTransition>{children}</PageTransition>
+      </main>
     </div>
   )
 }
