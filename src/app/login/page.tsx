@@ -14,11 +14,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
 
+// Importar el hook de autenticación
+import { useAuth } from "@/hooks/use-auth"
+
+// Modificar el componente PaginaLogin para usar el hook
 export default function PaginaLogin() {
   const router = useRouter()
-  const [cargando, setCargando] = useState(false)
+  const { login, loading: cargando } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
 
   // Función para manejar el inicio de sesión
   const handleLogin = async (tipo: string, e: React.FormEvent) => {
@@ -33,26 +38,18 @@ export default function PaginaLogin() {
       return
     }
 
-    setCargando(true)
-
     try {
-      // Simulamos una petición a la API
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Redirigir según el tipo de usuario
-      if (tipo === "doctor") {
-        router.push("/doctor/calendario")
-      } else {
-        router.push("/paciente/expediente")
-      }
+      await login({
+        username: email,
+        password: password,
+      })
     } catch (error) {
       toast({
         title: "Error de inicio de sesión",
         description: "Credenciales incorrectas. Inténtalo de nuevo.",
         variant: "destructive",
       })
-    } finally {
-      setCargando(false)
+      setError("Credenciales incorrectas")
     }
   }
 

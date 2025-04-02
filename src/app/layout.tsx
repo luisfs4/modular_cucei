@@ -5,6 +5,8 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 import { NavigationProgressBar } from "@/components/transitions/progress-bar"
+// Importar el AuthProvider
+import { AuthProvider } from "@/hooks/use-auth"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -13,6 +15,7 @@ export const metadata: Metadata = {
   description: "Plataforma de gestión para clínicas médicas",
 }
 
+// Modificar el componente RootLayout para incluir el AuthProvider
 export default function RootLayout({
   children,
 }: {
@@ -21,11 +24,13 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <NavigationProgressBar />
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            <NavigationProgressBar />
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )
