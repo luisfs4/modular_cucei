@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
@@ -16,40 +16,60 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-
-// Datos de ejemplo para doctores y horarios
-const doctoresMock = [
-  { id: 1, nombre: "Dr. Juan Pérez", especialidad: "Cardiología" },
-  { id: 2, nombre: "Dra. María González", especialidad: "Neurología" },
-  { id: 3, nombre: "Dr. Carlos Rodríguez", especialidad: "Pediatría" },
-  { id: 4, nombre: "Dra. Ana Martínez", especialidad: "Dermatología" },
-  { id: 5, nombre: "Dr. Roberto Sánchez", especialidad: "Oftalmología" },
-]
-
-const horariosMock = [
-  "09:00 AM",
-  "09:30 AM",
-  "10:00 AM",
-  "10:30 AM",
-  "11:00 AM",
-  "11:30 AM",
-  "12:00 PM",
-  "12:30 PM",
-  "03:00 PM",
-  "03:30 PM",
-  "04:00 PM",
-  "04:30 PM",
-  "05:00 PM",
-  "05:30 PM",
-]
+import { useAuth } from "@/hooks/use-auth"
+import { doctoresService, citasService, type OptionDoctor } from "@/services"
 
 export default function FormularioNuevaCita() {
   const router = useRouter()
+  const { user } = useAuth()
   const [fecha, setFecha] = useState<Date | undefined>(undefined)
   const [doctor, setDoctor] = useState<string>("")
   const [horario, setHorario] = useState<string>("")
   const [motivo, setMotivo] = useState<string>("")
   const [enviando, setEnviando] = useState(false)
+  const [doctores, setDoctores] = useState<OptionDoctor[]>([])
+  const [cargandoDoctores, setCargandoDoctores] = useState(true)
+
+  // Horarios disponibles
+  const horariosMock = [
+    "09:00",
+    "09:30",
+    "10:00",
+    "10:30",
+    "11:00",
+    "11:30",
+    "12:00",
+    "12:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+    "17:00",
+    "17:30",
+  ]
+
+  // Cargar doctores al montar el componente
+  useEffect(() => {
+    const cargarDoctores = async () => {
+      if (user?.access_token) {
+        try {
+          const data = await doctoresService.getEspecialidades(user.access_token)
+          setDoctores(data)
+        } catch (error) {
+          console.error("Error al cargar doctores:", error)
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los doctores disponibles.",
+            variant: "destructive",
+          })
+        } finally {
+          setCargandoDoctores(false)
+        }
+      }
+    }
+
+    cargarDoctores()
+  }, [user])
 
   // Función para manejar el envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,12 +84,34 @@ export default function FormularioNuevaCita() {
       return
     }
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para agendar una cita.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setEnviando(true)
 
-    // Simulamos una petición a la API
     try {
-      // En un caso real, aquí enviaríamos los datos a la API
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Formatear la fecha para la API
+      const fechaFormateada = format(fecha, "yyyy-MM-dd")
+
+      // Crear objeto de cita
+      const nuevaCita = {
+        id_paciente: user.id,
+        id_medico: Number.parseInt(doctor),
+        fecha: fechaFormateada,
+        hora: horario,
+        motivo: motivo || undefined,
+        duracion: 30, // Duración por defecto en minutos
+        ubicacion: "Consultorio Principal", // Ubicación por defecto
+      }
+
+      // Enviar a la API
+      await citasService.create(nuevaCita, user.access_token)
 
       toast({
         title: "Cita agendada",
@@ -79,6 +121,7 @@ export default function FormularioNuevaCita() {
       // Redirigir al expediente de citas
       router.push("/paciente/expediente")
     } catch (error) {
+      console.error("Error al agendar cita:", error)
       toast({
         title: "Error",
         description: "Ocurrió un error al agendar la cita. Inténtalo de nuevo.",
@@ -88,6 +131,9 @@ export default function FormularioNuevaCita() {
       setEnviando(false)
     }
   }
+
+  // Encontrar el nombre del doctor seleccionado
+  const doctorSeleccionado = doctores.find((d) => d.id.toString() === doctor)
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -102,16 +148,16 @@ export default function FormularioNuevaCita() {
           <div className="space-y-4">
             <FormItem>
               <FormLabel>Doctor</FormLabel>
-              <Select value={doctor} onValueChange={setDoctor} required>
+              <Select value={doctor} onValueChange={setDoctor} disabled={cargandoDoctores} required>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un doctor" />
+                    <SelectValue placeholder={cargandoDoctores ? "Cargando doctores..." : "Selecciona un doctor"} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {doctoresMock.map((doc) => (
+                  {doctores.map((doc) => (
                     <SelectItem key={doc.id} value={doc.id.toString()}>
-                      {doc.nombre} - {doc.especialidad}
+                      {doc.nombre} {doc.especialidad ? `- ${doc.especialidad}` : ""}
                     </SelectItem>
                   ))}
                 </SelectContent>

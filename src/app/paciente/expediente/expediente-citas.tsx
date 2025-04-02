@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Search } from "lucide-react"
 import Link from "next/link"
 
@@ -9,79 +9,55 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-// Datos de ejemplo para citas
-const citasMock = [
-  {
-    id: 1,
-    doctor: "Dr. Juan Pérez",
-    especialidad: "Cardiología",
-    fecha: "15/08/2023",
-    hora: "10:00 AM",
-    ubicacion: "Consultorio 101",
-    estado: "Completada",
-    notas: "Revisión de rutina. Presión arterial normal.",
-  },
-  {
-    id: 2,
-    doctor: "Dra. María González",
-    especialidad: "Neurología",
-    fecha: "22/09/2023",
-    hora: "11:30 AM",
-    ubicacion: "Consultorio 205",
-    estado: "Completada",
-    notas: "Dolor de cabeza recurrente. Se recetó medicación.",
-  },
-  {
-    id: 3,
-    doctor: "Dr. Carlos Rodríguez",
-    especialidad: "Pediatría",
-    fecha: "10/10/2023",
-    hora: "09:15 AM",
-    ubicacion: "Consultorio 103",
-    estado: "Cancelada",
-    notas: "Paciente no asistió.",
-  },
-  {
-    id: 4,
-    doctor: "Dra. Ana Martínez",
-    especialidad: "Dermatología",
-    fecha: "05/11/2023",
-    hora: "16:00 PM",
-    ubicacion: "Consultorio 302",
-    estado: "Programada",
-    notas: "",
-  },
-  {
-    id: 5,
-    doctor: "Dr. Roberto Sánchez",
-    especialidad: "Oftalmología",
-    fecha: "20/11/2023",
-    hora: "12:45 PM",
-    ubicacion: "Consultorio 204",
-    estado: "Programada",
-    notas: "",
-  },
-]
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "@/components/ui/use-toast"
+import { useAuth } from "@/hooks/use-auth"
+import { citasService, type Cita } from "@/services"
 
 export default function ExpedienteCitas() {
+  const { user } = useAuth()
   const [busqueda, setBusqueda] = useState("")
   const [paginaActual, setPaginaActual] = useState(1)
   const [filtroTab, setFiltroTab] = useState("todas")
+  const [citas, setCitas] = useState<Cita[]>([])
+  const [cargando, setCargando] = useState(true)
 
   const elementosPorPagina = 3
 
+  // Cargar citas al montar el componente
+  useEffect(() => {
+    const cargarCitas = async () => {
+      if (user?.access_token) {
+        try {
+          const data = await citasService.getByPaciente(user.id, user.access_token)
+          setCitas(data)
+        } catch (error) {
+          console.error("Error al cargar citas:", error)
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar tus citas.",
+            variant: "destructive",
+          })
+        } finally {
+          setCargando(false)
+        }
+      }
+    }
+
+    cargarCitas()
+  }, [user])
+
   // Filtrar citas por búsqueda y tab
-  const citasFiltradas = citasMock.filter((cita) => {
+  const citasFiltradas = citas.filter((cita) => {
     const coincideBusqueda =
       cita.doctor.toLowerCase().includes(busqueda.toLowerCase()) ||
       cita.especialidad.toLowerCase().includes(busqueda.toLowerCase()) ||
       cita.fecha.includes(busqueda)
 
     if (filtroTab === "todas") return coincideBusqueda
-    if (filtroTab === "programadas") return coincideBusqueda && cita.estado === "Programada"
-    if (filtroTab === "completadas") return coincideBusqueda && cita.estado === "Completada"
-    if (filtroTab === "canceladas") return coincideBusqueda && cita.estado === "Cancelada"
+    if (filtroTab === "programadas") return coincideBusqueda && cita.estado === "programada"
+    if (filtroTab === "completadas") return coincideBusqueda && cita.estado === "completada"
+    if (filtroTab === "canceladas") return coincideBusqueda && cita.estado === "cancelada"
 
     return coincideBusqueda
   })
@@ -94,16 +70,34 @@ export default function ExpedienteCitas() {
 
   // Función para obtener el color de la badge según el estado
   const getColorBadge = (estado: string) => {
-    switch (estado) {
-      case "Completada":
+    switch (estado.toLowerCase()) {
+      case "completada":
         return "success"
-      case "Programada":
+      case "programada":
         return "default"
-      case "Cancelada":
+      case "cancelada":
         return "destructive"
       default:
         return "secondary"
     }
+  }
+
+  // Renderizar esqueletos durante la carga
+  if (cargando) {
+    return (
+      <div className="w-full space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <Skeleton className="h-10 w-72" />
+          <Skeleton className="h-10 w-40" />
+        </div>
+        <Skeleton className="h-12 w-full" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-[200px] w-full" />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -160,7 +154,7 @@ export default function ExpedienteCitas() {
                       </div>
                       <div className="flex items-center md:col-span-2">
                         <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{cita.ubicacion}</span>
+                        <span>{cita.ubicacion || "Consultorio Principal"}</span>
                       </div>
                     </div>
                     {cita.notas && (
@@ -171,7 +165,7 @@ export default function ExpedienteCitas() {
                   </CardContent>
                   <CardFooter>
                     <div className="flex justify-end w-full">
-                      {cita.estado === "Programada" && (
+                      {cita.estado.toLowerCase() === "programada" && (
                         <Button variant="outline" size="sm" asChild>
                           <Link href={`/paciente/citas/${cita.id}`}>Ver Detalles</Link>
                         </Button>
@@ -215,7 +209,7 @@ export default function ExpedienteCitas() {
                       </div>
                       <div className="flex items-center md:col-span-2">
                         <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{cita.ubicacion}</span>
+                        <span>{cita.ubicacion || "Consultorio Principal"}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -263,7 +257,7 @@ export default function ExpedienteCitas() {
                       </div>
                       <div className="flex items-center md:col-span-2">
                         <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{cita.ubicacion}</span>
+                        <span>{cita.ubicacion || "Consultorio Principal"}</span>
                       </div>
                     </div>
                     {cita.notas && (
@@ -309,7 +303,7 @@ export default function ExpedienteCitas() {
                       </div>
                       <div className="flex items-center md:col-span-2">
                         <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{cita.ubicacion}</span>
+                        <span>{cita.ubicacion || "Consultorio Principal"}</span>
                       </div>
                     </div>
                     {cita.notas && (
