@@ -22,28 +22,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar si hay un token almacenado
-    const token = localStorage.getItem("token")
-    const userData = localStorage.getItem("user")
+    // Check if code is running in browser environment
+    if (typeof window !== "undefined") {
+      // Verify if there's a token stored
+      const token = localStorage.getItem("token")
+      const userData = localStorage.getItem("user")
 
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData)
-        setUser(parsedUser)
+      if (token && userData) {
+        try {
+          const parsedUser = JSON.parse(userData)
+          setUser(parsedUser)
 
-        // Verificar si el token es válido
-        authService
-          .validateToken(token)
-          .then((isValid) => {
-            if (!isValid) {
+          // Verify if the token is valid
+          authService
+            .validateToken(token)
+            .then((isValid) => {
+              if (!isValid) {
+                logout()
+              }
+            })
+            .catch(() => {
               logout()
-            }
-          })
-          .catch(() => {
-            logout()
-          })
-      } catch (error) {
-        logout()
+            })
+        } catch (error) {
+          logout()
+        }
       }
     }
 
@@ -56,8 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authService.login(credentials)
 
       // Guardar el token y la información del usuario
-      localStorage.setItem("token", response.access_token)
-      localStorage.setItem("user", JSON.stringify(response))
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", response.access_token)
+        localStorage.setItem("user", JSON.stringify(response))
+      }
 
       setUser(response)
 
@@ -78,8 +83,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
+    }
     setUser(null)
     router.push("/login")
   }
