@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Calendar, Mail, MapPin, Phone, Save, User } from "lucide-react"
@@ -13,43 +13,105 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/components/ui/use-toast"
-
-// Datos de ejemplo para el doctor
-const doctorMock = {
-  id: 1,
-  nombre: "Dr. Juan Pérez",
-  especialidad: "Cardiología",
-  email: "juan.perez@clinica.com",
-  telefono: "555-123-4567",
-  direccion: "Av. Principal 123, Ciudad",
-  biografia:
-    "Cardiólogo con más de 15 años de experiencia. Especializado en cardiología intervencionista y enfermedades cardiovasculares.",
-  horario: "Lunes a Viernes: 9:00 AM - 6:00 PM",
-  imagen: "/placeholder.svg?height=200&width=200",
-}
+import { useAuth } from "@/hooks/use-auth"
+import { doctoresService } from "@/services/doctores-service"
+import { UploadImage } from "@/components/upload-image"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function PerfilDoctor() {
   const router = useRouter()
-  const [doctor, setDoctor] = useState(doctorMock)
+  const { user } = useAuth()
+  const [doctor, setDoctor] = useState<any>(null)
   const [editando, setEditando] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [cargando, setCargando] = useState(true)
+  const [subiendoImagen, setSubiendoImagen] = useState(false)
+
+  // Cargar datos del doctor
+  useEffect(() => {
+    const cargarDoctor = async () => {
+      if (user?.access_token) {
+        try {
+          const data = await doctoresService.getById(user.id, user.access_token)
+          setDoctor(data)
+        } catch (error) {
+          console.error("Error al cargar datos del doctor:", error)
+          toast({
+            title: "Error",
+            description: "No se pudo cargar la información del doctor.",
+            variant: "destructive",
+          })
+        } finally {
+          setCargando(false)
+        }
+      }
+    }
+
+    cargarDoctor()
+  }, [user])
 
   // Función para manejar cambios en los campos
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setDoctor((prev) => ({
+    setDoctor((prev: any) => ({
       ...prev,
       [name]: value,
     }))
   }
 
+  // Modificar la función handleImageChange para evitar la recarga brusca
+
+  // Función para manejar cambio de imagen
+  const handleImageChange = async (file: File) => {
+    if (!user?.access_token || !doctor) return
+
+    setSubiendoImagen(true)
+    try {
+      const result = await doctoresService.updateImage(user.id, file, user.access_token)
+
+      // Actualizar el estado de manera más suave
+      setDoctor((prev: any) => ({
+        ...prev,
+        imagen: result.imagen,
+      }))
+
+      toast({
+        title: "Imagen actualizada",
+        description: "Tu foto de perfil ha sido actualizada exitosamente.",
+      })
+    } catch (error) {
+      console.error("Error al actualizar imagen:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la imagen. Inténtalo de nuevo.",
+        variant: "destructive",
+      })
+    } finally {
+      // Pequeño retraso para evitar parpadeos en la UI
+      setTimeout(() => {
+        setSubiendoImagen(false)
+      }, 300)
+    }
+  }
+
   // Función para guardar cambios
   const guardarCambios = async () => {
+    if (!user?.access_token || !doctor) return
+
     setGuardando(true)
 
     try {
-      // Simulamos una petición a la API
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Preparar datos para actualizar
+      const datosActualizados = {
+        nombre: doctor.nombre,
+        telefono: doctor.telefono,
+        direccion: doctor.direccion,
+        biografia: doctor.biografia,
+        horario: doctor.horario,
+      }
+
+      // Enviar datos a la API
+      await doctoresService.update(user.id, datosActualizados, user.access_token)
 
       toast({
         title: "Perfil actualizado",
@@ -58,6 +120,7 @@ export default function PerfilDoctor() {
 
       setEditando(false)
     } catch (error) {
+      console.error("Error al actualizar perfil:", error)
       toast({
         title: "Error",
         description: "Ocurrió un error al actualizar tu perfil. Inténtalo de nuevo.",
@@ -66,6 +129,62 @@ export default function PerfilDoctor() {
     } finally {
       setGuardando(false)
     }
+  }
+
+  if (cargando) {
+    return (
+      <div className="w-full max-w-4xl mx-auto space-y-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-6">
+              <Skeleton className="h-40 w-40 rounded-full" />
+              <div className="flex-1 space-y-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="space-y-2">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-10 w-full" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-32 w-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!doctor) {
+    return (
+      <div className="w-full max-w-4xl mx-auto space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex justify-center">
+              <p>No se pudo cargar la información del doctor.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -77,21 +196,25 @@ export default function PerfilDoctor() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative w-40 h-40">
-                <Image
-                  src={doctor.imagen || "/placeholder.svg"}
-                  alt={doctor.nombre}
-                  fill
-                  className="rounded-full object-cover border-4 border-background"
-                />
+            {editando ? (
+              <UploadImage
+                currentImage={doctor.imagen}
+                onImageChange={handleImageChange}
+                isUploading={subiendoImagen}
+              />
+            ) : (
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative w-40 h-40">
+                  <Image
+                    src={doctor.imagen || "/placeholder.svg?height=200&width=200"}
+                    alt={doctor.nombre}
+                    width={160}
+                    height={160}
+                    className="rounded-full object-cover border-4 border-background"
+                  />
+                </div>
               </div>
-              {editando && (
-                <Button variant="outline" size="sm">
-                  Cambiar foto
-                </Button>
-              )}
-            </div>
+            )}
 
             <div className="flex-1 space-y-6">
               <div className="space-y-4">
@@ -110,31 +233,18 @@ export default function PerfilDoctor() {
 
                   <div className="space-y-2">
                     <Label htmlFor="especialidad">Especialidad</Label>
-                    {editando ? (
-                      <Input
-                        id="especialidad"
-                        name="especialidad"
-                        value={doctor.especialidad}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{doctor.especialidad}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>{doctor.especialidad}</span>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email">Correo electrónico</Label>
-                    {editando ? (
-                      <Input id="email" name="email" type="email" value={doctor.email} onChange={handleChange} />
-                    ) : (
-                      <div className="flex items-center">
-                        <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{doctor.email}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>{doctor.email}</span>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

@@ -1,5 +1,3 @@
-import { API_URL, getAuthHeaders, handleApiError } from "@/lib/api-config"
-
 export interface Doctor {
   id_medico?: number
   telefono?: string
@@ -12,6 +10,7 @@ export interface Doctor {
   horario?: string
   password?: string
   id_especialidad?: number
+  especialidad?: string
 }
 
 export interface DoctorPost {
@@ -41,15 +40,15 @@ export interface DoctorPut {
 export interface DoctorPaciente {
   id_paciente: number
   direccion?: string
-  estado: boolean
+  estado: string
   nombre: string
-  tel?: number
+  tel?: string
   genero?: string
   edad?: number
   email?: string
   imagen?: string
   ultima_visita: string
-  proxima_cita: string
+  proxima_cita: string | null
 }
 
 export interface OptionDoctor {
@@ -61,94 +60,99 @@ export interface OptionDoctor {
 export const doctoresService = {
   // Obtener todos los doctores
   async getAll(token: string, skip = 0, limit = 100): Promise<Doctor[]> {
-    const response = await fetch(`${API_URL}/doctores?skip=${skip}&limit=${limit}`, {
-      headers: getAuthHeaders(token),
+    const response = await fetch(`/api/doctores?skip=${skip}&limit=${limit}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
 
-    await handleApiError(response)
+    if (!response.ok) {
+      throw new Error("Error al obtener doctores")
+    }
+
     return response.json()
   },
 
   // Obtener un doctor por ID
   async getById(id: number, token: string): Promise<Doctor> {
-    const response = await fetch(`${API_URL}/doctores/${id}`, {
-      headers: getAuthHeaders(token),
+    const response = await fetch(`/api/doctores/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
 
-    await handleApiError(response)
-    return response.json()
-  },
+    if (!response.ok) {
+      throw new Error("Error al obtener doctor")
+    }
 
-  // Crear un nuevo doctor
-  async create(doctor: DoctorPost, token: string): Promise<any> {
-    const formData = new FormData()
-
-    // Añadir todos los campos al FormData
-    Object.entries(doctor).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, value as string | Blob)
-      }
-    })
-
-    const response = await fetch(`${API_URL}/doctores`, {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      body: formData,
-    })
-
-    await handleApiError(response)
     return response.json()
   },
 
   // Actualizar un doctor
-  async update(id: number, doctor: DoctorPut, token: string): Promise<any> {
-    const formData = new FormData()
-
-    // Añadir todos los campos al FormData
-    Object.entries(doctor).forEach(([key, value]) => {
-      if (value !== undefined) {
-        formData.append(key, value as string | Blob)
-      }
-    })
-
-    const response = await fetch(`${API_URL}/doctores/${id}`, {
+  async update(id: number, data: DoctorPut, token: string): Promise<Doctor> {
+    const response = await fetch(`/api/doctores/${id}`, {
       method: "PUT",
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
     })
 
-    await handleApiError(response)
+    if (!response.ok) {
+      throw new Error("Error al actualizar doctor")
+    }
+
     return response.json()
   },
 
-  // Eliminar un doctor
-  async delete(id: number, token: string): Promise<void> {
-    const response = await fetch(`${API_URL}/doctores/${id}`, {
-      method: "DELETE",
-      headers: getAuthHeaders(token),
+  // Actualizar la imagen de un doctor
+  async updateImage(id: number, imageFile: File, token: string): Promise<{ success: boolean; imagen: string }> {
+    const formData = new FormData()
+    formData.append("imagen", imageFile)
+
+    const response = await fetch(`/api/doctores/${id}/imagen`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
     })
 
-    await handleApiError(response)
-    return
-  },
+    if (!response.ok) {
+      throw new Error("Error al actualizar imagen")
+    }
 
-  // Obtener pacientes de un doctor
-  async getPacientes(id: number, token: string): Promise<DoctorPaciente[]> {
-    const response = await fetch(`${API_URL}/doctores/${id}/paciente`, {
-      headers: getAuthHeaders(token),
-    })
-
-    await handleApiError(response)
     return response.json()
   },
 
   // Obtener especialidades de doctores
   async getEspecialidades(token: string): Promise<OptionDoctor[]> {
-    const response = await fetch(`${API_URL}/citas/doctor/especialidad/`, {
-      headers: getAuthHeaders(token),
+    const response = await fetch("/api/especialidades", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
 
-    await handleApiError(response)
+    if (!response.ok) {
+      throw new Error("Error al obtener especialidades")
+    }
+
+    return response.json()
+  },
+
+  // Obtener pacientes de un doctor
+  async getPacientes(doctorId: number, token: string): Promise<DoctorPaciente[]> {
+    const response = await fetch(`/api/doctores/${doctorId}/pacientes`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error("Error al obtener pacientes del doctor")
+    }
+
     return response.json()
   },
 }

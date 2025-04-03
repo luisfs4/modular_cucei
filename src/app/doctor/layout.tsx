@@ -2,7 +2,7 @@
 
 import type React from "react"
 import Link from "next/link"
-import { Building, ChevronDown, LogOut, Menu, Settings, User } from "lucide-react"
+import { Building, ChevronDown, LogOut, Menu, Settings, User, Calendar, Users, FileText } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -33,12 +33,22 @@ export default function DoctorLayout({
               <span>Clínica IA</span>
             </Link>
             <Link href="/doctor/calendario" className="text-muted-foreground transition-colors hover:text-foreground">
+              <Calendar className="h-4 w-4 mr-1 inline-block" />
               Calendario
             </Link>
             <Link href="/doctor/pacientes" className="text-muted-foreground transition-colors hover:text-foreground">
+              <Users className="h-4 w-4 mr-1 inline-block" />
               Pacientes
             </Link>
+            <Link
+              href="/doctor/interpretaciones"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <FileText className="h-4 w-4 mr-1 inline-block" />
+              Interpretaciones
+            </Link>
             <Link href="/doctor/perfil" className="text-muted-foreground transition-colors hover:text-foreground">
+              <User className="h-4 w-4 mr-1 inline-block" />
               Mi Perfil
             </Link>
           </nav>
@@ -59,15 +69,25 @@ export default function DoctorLayout({
                   href="/doctor/calendario"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
+                  <Calendar className="h-4 w-4 mr-1 inline-block" />
                   Calendario
                 </Link>
                 <Link
                   href="/doctor/pacientes"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
+                  <Users className="h-4 w-4 mr-1 inline-block" />
                   Pacientes
                 </Link>
+                <Link
+                  href="/doctor/interpretaciones"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <FileText className="h-4 w-4 mr-1 inline-block" />
+                  Interpretaciones
+                </Link>
                 <Link href="/doctor/perfil" className="text-muted-foreground transition-colors hover:text-foreground">
+                  <User className="h-4 w-4 mr-1 inline-block" />
                   Mi Perfil
                 </Link>
               </nav>

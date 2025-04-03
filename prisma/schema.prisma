@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelos basados en la estructura actual del proyecto
+
+model Usuario {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  email           String   @unique
+  password        String
+  telefono        String?
+  direccion       String?
+  fechaNacimiento String?
+  genero          String?
+  estado          Boolean  @default(true)
+  rol             String   @default("paciente")
+  imagen          String?
+  ultimaVisita    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relaciones
+  citas           Cita[]   @relation("PacienteCitas")
+  notasMedicas    NotaMedica[] @relation("PacienteNotas")
+  interpretaciones Interpretacion[] @relation("PacienteInterpretaciones")
+}
+
+model Doctor {
+  id              Int         @id @default(autoincrement())
+  nombre          String
+  email           String      @unique
+  password        String
+  telefono        String
+  direccion       String?
+  biografia       String?
+  horario         String?
+  estado          Boolean     @default(true)
+  imagen          String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relaciones
+  especialidadId  Int
+  especialidad    Especialidad @relation(fields: [especialidadId], references: [id])
+  citas           Cita[]      @relation("DoctorCitas")
+  notasMedicas    NotaMedica[] @relation("DoctorNotas")
+  interpretaciones Interpretacion[] @relation("DoctorInterpretaciones")
+}
+
+model Especialidad {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  doctores  Doctor[]
+}
+
+model Cita {
+  id          Int      @id @default(autoincrement())
+  fecha       String
+  hora        String
+  duracion    Int      @default(30)
+  motivo      String?
+  estado      String   @default("programada") // programada, completada, cancelada
+  notas       String?
+  ubicacion   String   @default("Consultorio Principal")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  pacienteId  Int
+  paciente    Usuario  @relation("PacienteCitas", fields: [pacienteId], references: [id])
+  doctorId    Int
+  doctor      Doctor   @relation("DoctorCitas", fields: [doctorId], references: [id])
+}
+
+// Modelo para notas médicas
+model NotaMedica {
+  id          Int      @id @default(autoincrement())
+  fecha       String
+  contenido   String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relaciones
+  pacienteId  Int
+  paciente    Usuario  @relation("PacienteNotas", fields: [pacienteId], references: [id])
+  doctorId    Int
+  doctor      Doctor   @relation("DoctorNotas", fields: [doctorId], references: [id])
+}
+
+// Nuevo modelo para interpretaciones de estudios
+model Interpretacion {
+  id              Int      @id @default(autoincrement())
+  fecha           String
+  tipoEstudio     String   // Tipo de estudio (sangre, orina, rayos X, etc.)
+  archivoUrl      String?  // URL del archivo subido (PDF o imagen)
+  parametros      Json?    // Parámetros detectados en formato JSON
+  resultados      Json?    // Resultados del análisis en formato JSON
+  observaciones   String?  @db.Text
+  estado          String   @default("pendiente") // pendiente, completado, revisado
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relaciones
+  pacienteId      Int
+  paciente        Usuario  @relation("PacienteInterpretaciones", fields: [pacienteId], references: [id])
+  doctorId        Int
+  doctor          Doctor   @relation("DoctorInterpretaciones", fields: [doctorId], references: [id])
+}
+

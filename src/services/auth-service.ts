@@ -1,5 +1,3 @@
-import { API_URL, defaultOptions, handleApiError } from "@/lib/api-config"
-
 export interface LoginRequest {
   username: string
   password: string
@@ -19,44 +17,35 @@ export interface ForgetPasswordRequest {
 export const authService = {
   // Iniciar sesión
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const formData = new URLSearchParams()
-    formData.append("username", credentials.username)
-    formData.append("password", credentials.password)
-
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/json",
       },
-      body: formData,
+      body: JSON.stringify(credentials),
     })
 
-    await handleApiError(response)
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || "Error al iniciar sesión")
+    }
+
     return response.json()
-  },
-
-  // Solicitar recuperación de contraseña
-  async forgetPassword(data: ForgetPasswordRequest): Promise<void> {
-    const response = await fetch(`${API_URL}/auth/forget_password`, {
-      method: "POST",
-      headers: defaultOptions.headers,
-      body: JSON.stringify(data),
-    })
-
-    await handleApiError(response)
-    return
   },
 
   // Verificar si el token es válido
   async validateToken(token: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_URL}/auth/perfil`, {
+      const response = await fetch("/api/auth/validate", {
+        method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ token }),
       })
 
-      return response.ok
+      const data = await response.json()
+      return data.valid
     } catch (error) {
       return false
     }
