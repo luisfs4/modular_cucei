@@ -5,6 +5,7 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { authService, type LoginRequest, type LoginResponse } from "@/services/auth-service"
+import { safeLocalStorage } from "@/lib/browser-utils"
 
 interface AuthContextType {
   user: LoginResponse | null
@@ -22,31 +23,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Check if code is running in browser environment
-    if (typeof window !== "undefined") {
-      // Verify if there's a token stored
-      const token = localStorage.getItem("token")
-      const userData = localStorage.getItem("user")
+    // Verify if there's a token stored using our safe utility
+    const token = safeLocalStorage.getItem("token")
+    const userData = safeLocalStorage.getItem("user")
 
-      if (token && userData) {
-        try {
-          const parsedUser = JSON.parse(userData)
-          setUser(parsedUser)
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
 
-          // Verify if the token is valid
-          authService
-            .validateToken(token)
-            .then((isValid) => {
-              if (!isValid) {
-                logout()
-              }
-            })
-            .catch(() => {
+        // Verify if the token is valid
+        authService
+          .validateToken(token)
+          .then((isValid) => {
+            if (!isValid) {
               logout()
-            })
-        } catch (error) {
-          logout()
-        }
+            }
+          })
+          .catch(() => {
+            logout()
+          })
+      } catch (error) {
+        logout()
       }
     }
 
@@ -58,15 +56,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await authService.login(credentials)
 
-      // Guardar el token y la información del usuario
-      if (typeof window !== "undefined") {
-        localStorage.setItem("token", response.access_token)
-        localStorage.setItem("user", JSON.stringify(response))
-      }
+      // Save token and user info using our safe utility
+      safeLocalStorage.setItem("token", response.access_token)
+      safeLocalStorage.setItem("user", JSON.stringify(response))
 
       setUser(response)
 
-      // Redirigir según el rol
+      // Redirect based on role
       if (response.rol === "doctor") {
         router.push("/doctor/calendario")
       } else if (response.rol === "admin") {
@@ -83,10 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
-    }
+    safeLocalStorage.removeItem("token")
+    safeLocalStorage.removeItem("user")
     setUser(null)
     router.push("/login")
   }

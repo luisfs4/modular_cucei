@@ -8,6 +8,8 @@ import { NavigationProgressBar } from "@/components/transitions/progress-bar"
 // Importar el AuthProvider
 import { AuthProvider } from "@/hooks/use-auth"
 
+export const dynamic = "force-dynamic"
+
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
@@ -35,4 +37,3 @@ export default function RootLayout({
     </html>
   )
 }
-

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import CalendarioDoctor from "./calendario-doctor"
 
 export default function PaginaCalendario() {
