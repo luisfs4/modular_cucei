@@ -10,7 +10,7 @@ import { safeLocalStorage } from "@/lib/browser-utils"
 interface AuthContextType {
   user: LoginResponse | null
   loading: boolean
-  login: (credentials: LoginRequest) => Promise<void>
+  login: (credentials: LoginRequest, forceLogout?: boolean) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
 }
@@ -51,9 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }, [])
 
-  const login = async (credentials: LoginRequest) => {
+  const login = async (credentials: LoginRequest, forceLogout = false) => {
     setLoading(true)
     try {
+      // Si forceLogout es true o ya hay un usuario autenticado, cerrar sesión primero
+      if (forceLogout || user) {
+        // Limpiar datos de sesión existentes
+        safeLocalStorage.removeItem("token")
+        safeLocalStorage.removeItem("user")
+        setUser(null)
+      }
+
       const response = await authService.login(credentials)
 
       // Save token and user info using our safe utility
@@ -107,4 +115,3 @@ export function useAuth() {
   }
   return context
 }
-

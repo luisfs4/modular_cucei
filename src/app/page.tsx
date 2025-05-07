@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { Calendar, Clock, HeartPulse, Phone, Shield, Stethoscope, Mail, MapPin } from "lucide-react"
@@ -5,8 +7,14 @@ import { Calendar, Clock, HeartPulse, Phone, Shield, Stethoscope, Mail, MapPin }
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollAnimation } from "@/components/transitions/scroll-animation"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function PaginaInicio() {
+  const { isAuthenticated, user } = useAuth()
+
+  // Determinar si debe mostrar el botón de agendar cita
+  const mostrarBotonAgendarCita = !isAuthenticated || user?.rol === "paciente"
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Encabezado */}
@@ -31,12 +39,32 @@ export default function PaginaInicio() {
             </Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/login">Iniciar Sesión</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/paciente/citas/nueva">Agendar Cita</Link>
-            </Button>
+            {isAuthenticated ? (
+              // Si está autenticado, mostrar botón para ir a su panel
+              <Button asChild>
+                <Link
+                  href={
+                    user?.rol === "doctor"
+                      ? "/doctor/calendario"
+                      : user?.rol === "admin"
+                        ? "/admin"
+                        : "/paciente/expediente"
+                  }
+                >
+                  Mi Panel
+                </Link>
+              </Button>
+            ) : (
+              // Si no está autenticado, mostrar botón de inicio de sesión
+              <Button variant="outline" asChild>
+                <Link href="/login">Iniciar Sesión</Link>
+              </Button>
+            )}
+            {mostrarBotonAgendarCita && (
+              <Button asChild>
+                <Link href="/paciente/citas/nueva">Agendar Cita</Link>
+              </Button>
+            )}
           </div>
         </div>
       </header>
@@ -56,9 +84,25 @@ export default function PaginaInicio() {
                     mejor servicio. Nuestro equipo de especialistas está listo para atenderte.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button size="lg" asChild>
-                      <Link href="/paciente/citas/nueva">Agendar una Cita</Link>
-                    </Button>
+                    {isAuthenticated ? (
+                      <Button size="lg" asChild>
+                        <Link
+                          href={
+                            user?.rol === "doctor"
+                              ? "/doctor/calendario"
+                              : user?.rol === "admin"
+                                ? "/admin"
+                                : "/paciente/expediente"
+                          }
+                        >
+                          Ir a Mi Panel
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button size="lg" asChild>
+                        <Link href="/paciente/citas/nueva">Agendar una Cita</Link>
+                      </Button>
+                    )}
                     <Button size="lg" variant="outline" asChild>
                       <Link href="#servicios">Conocer Servicios</Link>
                     </Button>
@@ -164,7 +208,7 @@ export default function PaginaInicio() {
                     <CardHeader className="p-0">
                       <div className="relative h-48 w-full">
                         <Image
-                          src={`/placeholder.svg?height=200&width=300&text=Doctor+${i}`}
+                          src={`/doctor_text.png?height=200&width=300&text=Doctor+${i}`}
                           alt={`Doctor ${i}`}
                           fill
                           className="object-cover rounded-t-lg"
@@ -208,7 +252,7 @@ export default function PaginaInicio() {
                         <div className="flex items-center gap-2">
                           <div className="relative h-10 w-10 rounded-full overflow-hidden">
                             <Image
-                              src={`/placeholder.svg?height=40&width=40&text=${i}`}
+                              src={`/placeholder-40x40.png?height=40&width=40&text=${i}`}
                               alt={`Paciente ${i}`}
                               fill
                               className="object-cover"
@@ -287,4 +331,3 @@ export default function PaginaInicio() {
     </div>
   )
 }
-
