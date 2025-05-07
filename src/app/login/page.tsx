@@ -7,7 +7,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, HeartPulse, Loader2 } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, HeartPulse, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ export default function PaginaLogin() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [activeTab, setActiveTab] = useState("paciente")
+  const [showPassword, setShowPassword] = useState(false)
 
   // Redirigir si ya está autenticado
   useEffect(() => {
@@ -100,6 +101,26 @@ export default function PaginaLogin() {
       })
       setError("Credenciales incorrectas")
     }
+  }
+
+  // Función para mostrar la alerta de recuperación de contraseña
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault()
+    toast({
+      title: "Recuperación de contraseña",
+      description: (
+        <div className="space-y-2">
+          <p>Para restablecer tu contraseña, es necesario contactar al administrador:</p>
+          <p className="font-medium">Luis Sanchez</p>
+          <p className="text-sm">
+            <a href="mailto:luis@programoporcomida.com" className="text-primary underline">
+              luis@programoporcomida.com
+            </a>
+          </p>
+        </div>
+      ),
+      duration: 6000,
+    })
   }
 
   // Si ya está autenticado, mostrar un mensaje de carga mientras se redirige
@@ -206,18 +227,42 @@ export default function PaginaLogin() {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <Label htmlFor="password-paciente">Contraseña</Label>
-                                <Link href="#" className="text-xs text-primary hover:underline">
+                                <button
+                                  type="button"
+                                  onClick={handleForgotPassword}
+                                  className="text-xs text-primary hover:underline"
+                                >
                                   ¿Olvidaste tu contraseña?
-                                </Link>
+                                </button>
                               </div>
-                              <Input
-                                id="password-paciente"
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                              />
+                              <div className="relative">
+                                <Input
+                                  id="password-paciente"
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="••••••••"
+                                  value={password}
+                                  onChange={(e) => setPassword(e.target.value)}
+                                  required
+                                  className="pr-10"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  tabIndex={-1}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" aria-hidden="true" />
+                                  )}
+                                  <span className="sr-only">
+                                    {showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                  </span>
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                           <CardFooter className="flex flex-col">
@@ -266,18 +311,42 @@ export default function PaginaLogin() {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <Label htmlFor="password-doctor">Contraseña</Label>
-                                <Link href="#" className="text-xs text-primary hover:underline">
+                                <button
+                                  type="button"
+                                  onClick={handleForgotPassword}
+                                  className="text-xs text-primary hover:underline"
+                                >
                                   ¿Olvidaste tu contraseña?
-                                </Link>
+                                </button>
                               </div>
-                              <Input
-                                id="password-doctor"
-                                type="password"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                              />
+                              <div className="relative">
+                                <Input
+                                  id="password-doctor"
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="••••••••"
+                                  value={password}
+                                  onChange={(e) => setPassword(e.target.value)}
+                                  required
+                                  className="pr-10"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground hover:text-foreground"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  tabIndex={-1}
+                                >
+                                  {showPassword ? (
+                                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                                  ) : (
+                                    <Eye className="h-4 w-4" aria-hidden="true" />
+                                  )}
+                                  <span className="sr-only">
+                                    {showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                  </span>
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                           <CardFooter className="flex flex-col">
