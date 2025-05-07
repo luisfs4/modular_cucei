@@ -25,6 +25,11 @@ export default function CalendarioDoctor() {
   const [citas, setCitas] = useState<Cita[]>([])
   const [cargando, setCargando] = useState(true)
 
+  // Función para formatear fechas en formato dd/mm/yyyy
+  const formatearFecha = (fecha: Date): string => {
+    return format(fecha, "dd/MM/yyyy")
+  }
+
   // Cargar citas al montar el componente
   useEffect(() => {
     const cargarCitas = async () => {
@@ -167,8 +172,7 @@ export default function CalendarioDoctor() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="text-sm font-medium">
-            {format(inicioSemana, "d 'de' MMMM", { locale: es })} -{" "}
-            {format(finSemana, "d 'de' MMMM, yyyy", { locale: es })}
+            {formatearFecha(inicioSemana)} - {formatearFecha(finSemana)}
           </div>
           <Button variant="outline" size="icon" onClick={semanaSiguiente}>
             <ChevronRight className="h-4 w-4" />
@@ -183,7 +187,7 @@ export default function CalendarioDoctor() {
             <Card key={dia.toString()} className={`${isSameDay(dia, new Date()) ? "border-primary" : ""}`}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-center">{format(dia, "EEEE", { locale: es })}</CardTitle>
-                <CardDescription className="text-center">{format(dia, "d 'de' MMMM", { locale: es })}</CardDescription>
+                <CardDescription className="text-center">{formatearFecha(dia)}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -199,7 +203,7 @@ export default function CalendarioDoctor() {
                             <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
                             <span className="text-xs">{formatearHora(cita.hora)}</span>
                           </div>
-                          <Badge variant={getVarianteBadge(cita.estado)} className="text-xs capitalize text-white">
+                          <Badge variant={getVarianteBadge(cita.estado)} className="text-xs capitalize">
                             {cita.estado}
                           </Badge>
                         </div>
@@ -245,11 +249,13 @@ export default function CalendarioDoctor() {
                 </div>
               </div>
               <div>
-                <p className="font-medium">{citaSeleccionada.fecha}</p>
+                <p className="font-medium">{formatearFecha(citaSeleccionada.fecha)}</p>
                 <p className="text-sm text-muted-foreground">Fecha</p>
               </div>
               <div>
-                <Badge variant={getVarianteBadge(citaSeleccionada.estado)}>{citaSeleccionada.estado}</Badge>
+                <Badge className="capitalize" variant={getVarianteBadge(citaSeleccionada.estado)}>
+                  {citaSeleccionada.estado}
+                </Badge>
                 <p className="text-sm text-muted-foreground mt-1">Estado</p>
               </div>
               {citaSeleccionada.notas && (
