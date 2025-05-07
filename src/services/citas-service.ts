@@ -7,6 +7,7 @@ export interface Cita {
   notas?: string
   doctor: string
   especialidad: string
+  paciente?: string // Añadir campo para el nombre del paciente
 }
 
 export interface CitaPost {
@@ -122,4 +123,3 @@ export const citasService = {
     return response.json()
   },
 }
-

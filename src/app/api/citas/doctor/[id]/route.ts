@@ -40,6 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             especialidad: true,
           },
         },
+        paciente: true, // Incluir información del paciente
       },
     })
 
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       notas: c.notas || "",
       doctor: c.doctor.nombre,
       especialidad: c.doctor.especialidad.nombre,
+      paciente: c.paciente?.nombre || "Paciente sin nombre", // Añadir nombre del paciente
     }))
 
     return NextResponse.json(formattedCitas)
@@ -61,4 +63,3 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
-

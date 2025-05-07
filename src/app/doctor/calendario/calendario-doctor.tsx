@@ -92,6 +92,34 @@ export default function CalendarioDoctor() {
     return hora
   }
 
+  // Función para obtener el color de fondo según el estado de la cita
+  const getColorEstado = (estado: string) => {
+    switch (estado.toLowerCase()) {
+      case "programada":
+        return "bg-blue-50 hover:bg-blue-100"
+      case "completada":
+        return "bg-green-50 hover:bg-green-100"
+      case "cancelada":
+        return "bg-red-50 hover:bg-red-100"
+      default:
+        return "bg-primary/10 hover:bg-primary/20"
+    }
+  }
+
+  // Función para obtener la variante del badge según el estado
+  const getVarianteBadge = (estado: string) => {
+    switch (estado.toLowerCase()) {
+      case "programada":
+        return "secondary"
+      case "completada":
+        return "success"
+      case "cancelada":
+        return "destructive"
+      default:
+        return "outline"
+    }
+  }
+
   if (cargando) {
     return (
       <div className="w-full space-y-4">
@@ -112,7 +140,7 @@ export default function CalendarioDoctor() {
     <div className="w-full space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-2">
-          <h2 className="text-2xl font-bold">Calendario de Citas</h2>
+          <h2 className="text-lg font-bold">Buscar semana</h2>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="icon">
@@ -163,7 +191,7 @@ export default function CalendarioDoctor() {
                     citasDelDia.map((cita) => (
                       <div
                         key={cita.id}
-                        className="p-2 rounded-md bg-primary/10 hover:bg-primary/20 cursor-pointer transition-colors"
+                        className={`p-2 rounded-md cursor-pointer transition-colors ${getColorEstado(cita.estado)}`}
                         onClick={() => verDetalleCita(cita)}
                       >
                         <div className="flex items-center justify-between">
@@ -171,11 +199,13 @@ export default function CalendarioDoctor() {
                             <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
                             <span className="text-xs">{formatearHora(cita.hora)}</span>
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            30 min
+                          <Badge variant={getVarianteBadge(cita.estado)} className="text-xs capitalize text-white">
+                            {cita.estado}
                           </Badge>
                         </div>
-                        <div className="mt-1 font-medium text-sm truncate">{cita.doctor}</div>
+                        <div className="mt-1 font-medium text-sm truncate">
+                          {cita.paciente || "Paciente sin nombre"}
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -200,7 +230,7 @@ export default function CalendarioDoctor() {
               <div className="flex items-center gap-2">
                 <User className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">{citaSeleccionada.doctor}</p>
+                  <p className="font-medium">{citaSeleccionada.paciente || "Paciente sin nombre"}</p>
                   <p className="text-sm text-muted-foreground">Paciente</p>
                 </div>
               </div>
@@ -218,6 +248,10 @@ export default function CalendarioDoctor() {
                 <p className="font-medium">{citaSeleccionada.fecha}</p>
                 <p className="text-sm text-muted-foreground">Fecha</p>
               </div>
+              <div>
+                <Badge variant={getVarianteBadge(citaSeleccionada.estado)}>{citaSeleccionada.estado}</Badge>
+                <p className="text-sm text-muted-foreground mt-1">Estado</p>
+              </div>
               {citaSeleccionada.notas && (
                 <div>
                   <p className="font-medium">{citaSeleccionada.notas}</p>
@@ -234,4 +268,3 @@ export default function CalendarioDoctor() {
     </div>
   )
 }
-
