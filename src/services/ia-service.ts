@@ -16,7 +16,7 @@ export interface IAProcessResult {
   message?: string
 }
 
-const IA_API_URL = process.env.NEXT_PUBLIC_IA_API_URL || "http://localhost:3000/api/ia"
+const IA_API_URL = process.env.NEXT_PUBLIC_IA_API_URL || "https://api-ia-vech.onrender.com"
 
 export interface IAAnalysisRequest {
   inputImagen: File
