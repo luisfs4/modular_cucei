@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { FileUp, Loader2, Microscope, FileText, AlertTriangle, Brain, Save } from "lucide-react"
+import { FileUp, Loader2, Microscope, FileText, AlertTriangle, Brain, Save, FileType } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { interpretacionesService } from "@/services/interpretaciones-service"
+import { iaService } from "@/services/ia-service"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
@@ -43,11 +44,31 @@ export default function NuevaInterpretacion() {
   const [progreso, setProgreso] = useState(0)
   const [analizando, setAnalizando] = useState(false)
   const [guardando, setGuardando] = useState(false)
+  const [servicioIADisponible, setServicioIADisponible] = useState(true)
+  const [conversionMensaje, setConversionMensaje] = useState<string | null>(null)
   const [pacientes, setPacientes] = useState<any[]>([
     { id: 1, nombre: "Ana López" },
     { id: 2, nombre: "Pedro Ramírez" },
     { id: 3, nombre: "Sofía Torres" },
   ])
+
+  // Verificar disponibilidad del servicio de IA al cargar
+  useEffect(() => {
+    const verificarServicioIA = async () => {
+      const disponible = await iaService.checkStatus()
+      setServicioIADisponible(disponible)
+
+      if (!disponible) {
+        toast({
+          title: "Servicio de IA no disponible",
+          description: "Se utilizará el modo de simulación para el análisis.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    verificarServicioIA()
+  }, [])
 
   // Función para manejar la selección de archivo
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,6 +86,9 @@ export default function NuevaInterpretacion() {
     }
 
     setArchivo(file)
+    setConversionMensaje(
+      file.type === "application/pdf" ? "El archivo PDF será convertido a imagen para su análisis." : null,
+    )
   }
 
   // Función para subir el archivo
@@ -102,8 +126,8 @@ export default function NuevaInterpretacion() {
       // Avanzar al siguiente paso
       setTimeout(() => {
         setPaso(2)
-        // Simular OCR
-        simularOCR()
+        // Analizar el archivo con IA o simulación
+        analizarArchivo()
       }, 500)
     } catch (error) {
       console.error("Error al subir archivo:", error)
@@ -117,9 +141,9 @@ export default function NuevaInterpretacion() {
     }
   }
 
-  // Función para simular OCR
-  const simularOCR = () => {
-    if (!tipoEstudio) return
+  // Función para analizar el archivo con IA o simulación
+  const analizarArchivo = async () => {
+    if (!tipoEstudio || !archivo) return
 
     setAnalizando(true)
     setProgreso(0)
@@ -135,11 +159,33 @@ export default function NuevaInterpretacion() {
       })
     }, 200)
 
-    // Simular tiempo de procesamiento
-    setTimeout(() => {
-      // Obtener parámetros simulados según el tipo de estudio
-      const parametrosDetectados = interpretacionesService.simulateOCR(tipoEstudio)
-      setParametros(parametrosDetectados)
+    try {
+      if (servicioIADisponible) {
+        // Usar la API de IA real
+        const resultado = await iaService.processImage({
+          inputImagen: archivo,
+          tipo_estudio: tipoEstudio,
+        })
+
+        if (resultado.success) {
+          setParametros(resultado.data)
+
+          if (resultado.message) {
+            setConversionMensaje(resultado.message)
+          }
+        } else {
+          // Si falla la API, usar simulación como fallback
+          toast({
+            title: "Error en el análisis",
+            description: resultado.message || "Usando simulación como alternativa.",
+            variant: "destructive",
+          })
+          setParametros(iaService.simulateOCR(tipoEstudio))
+        }
+      } else {
+        // Usar simulación si el servicio no está disponible
+        setParametros(iaService.simulateOCR(tipoEstudio))
+      }
 
       // Completar progreso
       clearInterval(interval)
@@ -149,9 +195,20 @@ export default function NuevaInterpretacion() {
         title: "Análisis completado",
         description: "Se han detectado los parámetros del estudio.",
       })
+    } catch (error) {
+      console.error("Error al analizar archivo:", error)
 
+      // Usar simulación como fallback
+      setParametros(iaService.simulateOCR(tipoEstudio))
+
+      toast({
+        title: "Error en el análisis",
+        description: "Se está utilizando simulación como alternativa.",
+        variant: "destructive",
+      })
+    } finally {
       setAnalizando(false)
-    }, 3000)
+    }
   }
 
   // Función para analizar resultados
@@ -174,8 +231,8 @@ export default function NuevaInterpretacion() {
 
     // Simular tiempo de procesamiento
     setTimeout(() => {
-      // Obtener resultados simulados según los parámetros y tipo de estudio
-      const resultadosAnalisis = interpretacionesService.simulateAnalysis(parametros, tipoEstudio)
+      // Generar análisis basado en los parámetros detectados
+      const resultadosAnalisis = iaService.generarAnalisis(parametros, tipoEstudio)
       setResultados(resultadosAnalisis)
 
       // Completar progreso
@@ -294,12 +351,31 @@ export default function NuevaInterpretacion() {
               className="flex-1"
             />
             {archivo && (
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <FileType className="h-3 w-3" />
                 {archivo.name}
               </Badge>
             )}
           </div>
           <p className="text-xs text-muted-foreground">Sube un archivo PDF o una imagen del estudio médico.</p>
+
+          {conversionMensaje && (
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-xs text-amber-700 flex items-center">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {conversionMensaje}
+              </p>
+            </div>
+          )}
+
+          {!servicioIADisponible && (
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+              <p className="text-xs text-amber-700 flex items-center">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                El servicio de IA no está disponible. Se utilizará simulación para el análisis.
+              </p>
+            </div>
+          )}
         </div>
 
         {cargando && (
@@ -366,34 +442,11 @@ export default function NuevaInterpretacion() {
                 <tbody>
                   {Object.entries(parametros).map(([key, value]: [string, any]) => {
                     // Determinar si el valor está fuera del rango de referencia
-                    let estado = "normal"
                     let badgeVariant = "outline"
-
-                    if (value.referencia) {
-                      if (typeof value.valor === "number" && typeof value.referencia === "string") {
-                        if (value.referencia.includes("-")) {
-                          const [min, max] = value.referencia.split("-").map(Number)
-                          if (value.valor < min) {
-                            estado = "bajo"
-                            badgeVariant = "destructive"
-                          } else if (value.valor > max) {
-                            estado = "alto"
-                            badgeVariant = "destructive"
-                          }
-                        } else if (value.referencia.startsWith("<")) {
-                          const max = Number(value.referencia.substring(1))
-                          if (value.valor > max) {
-                            estado = "alto"
-                            badgeVariant = "destructive"
-                          }
-                        } else if (value.referencia.startsWith(">")) {
-                          const min = Number(value.referencia.substring(1))
-                          if (value.valor < min) {
-                            estado = "bajo"
-                            badgeVariant = "destructive"
-                          }
-                        }
-                      }
+                    if (value.nivel === 0) {
+                      badgeVariant = "destructive"
+                    } else if (value.nivel === 2) {
+                      badgeVariant = "destructive"
                     }
 
                     return (
@@ -415,7 +468,7 @@ export default function NuevaInterpretacion() {
                         <td className="px-4 py-2">{value.unidad || ""}</td>
                         <td className="px-4 py-2">{value.referencia || ""}</td>
                         <td className="px-4 py-2">
-                          {value.referencia && <Badge variant={badgeVariant as any}>{estado}</Badge>}
+                          {value.interpretacion && <Badge className="capitalize" variant={badgeVariant as any}>{value.interpretacion}</Badge>}
                         </td>
                       </tr>
                     )
@@ -467,9 +520,19 @@ export default function NuevaInterpretacion() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium">{tiposEstudio.find((t) => t.id === tipoEstudio)?.nombre}</h3>
-              <Badge variant="outline" className="text-xs">
-                {pacientes.find((p) => p.id.toString() === pacienteId)?.nombre}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {pacientes.find((p) => p.id.toString() === pacienteId)?.nombre}
+                </Badge>
+                {resultados.resultado_general && (
+                  <Badge
+                    variant={resultados.resultado_general === "normal" ? "outline" : "destructive"}
+                    className="text-xs"
+                  >
+                    {resultados.resultado_general}
+                  </Badge>
+                )}
+              </div>
             </div>
 
             <Tabs defaultValue="interpretacion" className="w-full">
@@ -556,4 +619,3 @@ export default function NuevaInterpretacion() {
       return renderPaso1()
   }
 }
-
